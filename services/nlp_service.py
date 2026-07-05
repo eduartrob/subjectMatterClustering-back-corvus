@@ -2,8 +2,7 @@ import nltk
 import spacy
 from typing import List
 import os
-from dotenv import load_dotenv
-from groq import Groq
+import requests
 
 try:
     nltk.data.find('tokenizers/punkt')
@@ -19,8 +18,7 @@ class NLPService:
     def __init__(self):
         self.chunk_size = 500
         self.overlap = 50
-        load_dotenv()
-        self.groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
+        self.llm_service_url = os.environ.get("LLM_SERVICE_URL", "http://localhost:3003/api/v1/llm")
 
     def clean_text(self, text: str) -> str:
         """Limpia el texto base eliminando saltos de línea excesivos y basura."""
@@ -41,34 +39,21 @@ class NLPService:
         
         context = "\n\n".join(retrieved_chunks)
         
-        prompt = f"""
-Eres un asistente académico experto de la aplicación Corvus. Tu objetivo es responder la duda del estudiante utilizando ÚNICAMENTE la siguiente información extraída de los materiales del profesor. 
-No inventes información, si la respuesta no está en el contexto, di que no hay suficiente información en los materiales.
-Responde de manera amable, clara y estructurada.
-
-Consulta del estudiante: {query}
-
-Contexto (Material del profesor):
-{context}
-"""
         try:
-            chat_completion = self.groq_client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Eres un asistente académico útil y preciso."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
-                model="llama3-8b-8192",
-                temperature=0.3,
+            response = requests.post(
+                f"{self.llm_service_url}/generate-rag-summary",
+                json={
+                    "query": query,
+                    "context": context,
+                    "provider": "groq"
+                },
+                timeout=30
             )
-            return chat_completion.choices[0].message.content
+            response.raise_for_status()
+            data = response.json()
+            return data.get("summary", "No se generó resumen.")
         except Exception as e:
             resumen_simulado = context[:500].strip()
             if len(context) > 500:
                 resumen_simulado += "..."
-            return f"Hubo un error contactando a la IA, pero aquí está el extracto más relevante:\n\n❝ {resumen_simulado} ❞\n\n(Error: {str(e)})"
+            return f"Hubo un error contactando al microservicio LLM, pero aquí está el extracto más relevante:\n\n❝ {resumen_simulado} ❞\n\n(Error: {str(e)})"
