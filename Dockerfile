@@ -8,7 +8,7 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-descargar modelos de NLP (SpaCy y NLTK) para que la imagen ya los tenga listos
-RUN python -m spacy download es_core_news_sm
+RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_sm-3.7.0/es_core_news_sm-3.7.0.tar.gz
 RUN python -c "import nltk; nltk.download('punkt')"
 
 # Pre-descargar SentenceTransformer para que no se descargue al iniciar el contenedor
