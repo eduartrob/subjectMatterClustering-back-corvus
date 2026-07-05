@@ -6,7 +6,6 @@ import os
 import logging
 import time
 
-# Configuración de MLOps Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("VectorStore-MLOps")
 
@@ -56,7 +55,6 @@ class VectorStoreService:
             
         results = self.collection.query(**kwargs)
         
-        # Extraemos el primer grupo de resultados
         retrieved_chunks = results["documents"][0] if results["documents"] else []
         retrieved_metadatas = results["metadatas"][0] if results["metadatas"] else []
         

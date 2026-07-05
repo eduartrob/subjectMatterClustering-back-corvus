@@ -5,13 +5,11 @@ import os
 from dotenv import load_dotenv
 from groq import Groq
 
-# Tokenizador NLTK
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt', quiet=True)
 
-# Modelo spaCy (español)
 try:
     nlp = spacy.load("es_core_news_sm")
 except OSError:
@@ -19,7 +17,7 @@ except OSError:
 
 class NLPService:
     def __init__(self):
-        self.chunk_size = 500 # Caracteres por chunk
+        self.chunk_size = 500
         self.overlap = 50
         load_dotenv()
         self.groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY", ""))
@@ -31,7 +29,6 @@ class NLPService:
         return text.strip()
 
     def chunk_text(self, text: str) -> List[str]:
-        """Divide el texto en fragmentos (chunks) con cierto traslape para vectorización."""
         clean = self.clean_text(text)
         chunks = []
         for i in range(0, len(clean), self.chunk_size - self.overlap):
@@ -39,10 +36,6 @@ class NLPService:
         return chunks
 
     def generate_summary(self, query: str, retrieved_chunks: List[str]) -> str:
-        """
-        Genera un resumen usando Llama3 a través de la API de Groq,
-        basándose únicamente en el contexto recuperado de ChromaDB.
-        """
         if not retrieved_chunks:
             return "Lo siento, no encontré información sobre este tema en los apuntes de la clase."
         
@@ -75,7 +68,6 @@ Contexto (Material del profesor):
             )
             return chat_completion.choices[0].message.content
         except Exception as e:
-            # Fallback en caso de error de API
             resumen_simulado = context[:500].strip()
             if len(context) > 500:
                 resumen_simulado += "..."
