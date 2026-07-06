@@ -9,3 +9,4 @@ requests==2.31.0
 pydantic==2.5.2
 python-dotenv==1.0.0
 google-api-python-client==2.111.0
+huggingface_hub==0.22.2
