@@ -21,4 +21,4 @@ jobs:
             git checkout main
             git pull origin main
             cd /home/corvus/orchestration-back-corvus
-            docker compose up -d --build subject-matter-clustering-service
+            docker compose up -d --build clustering-subject-service
