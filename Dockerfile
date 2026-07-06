@@ -12,7 +12,7 @@ RUN pip install https://github.com/explosion/spacy-models/releases/download/es_c
 RUN python -c "import nltk; nltk.download('punkt')"
 
 # Pre-descargar modelo de FastEmbed para que no se descargue al iniciar el contenedor
-RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='paraphrase-multilingual-MiniLM-L12-v2')"
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')"
 
 COPY . .
 
