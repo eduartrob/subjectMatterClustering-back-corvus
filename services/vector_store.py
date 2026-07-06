@@ -13,7 +13,7 @@ logger = logging.getLogger("VectorStore-MLOps")
 class VectorStoreService:
     def __init__(self):
         self.client = QdrantClient(path="./qdrant_data")
-        self.encoder = TextEmbedding(model_name="paraphrase-multilingual-MiniLM-L12-v2")
+        self.encoder = TextEmbedding(model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
         self.collection_name = "classroom_materials"
         
         # Crear la colección si no existe
