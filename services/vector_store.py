@@ -6,6 +6,7 @@ import uuid
 import os
 import logging
 import time
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("VectorStore-MLOps")
@@ -26,6 +27,20 @@ class VectorStoreService:
             logger.info(f"Colección '{self.collection_name}' creada en Qdrant.")
         else:
             logger.info(f"Colección '{self.collection_name}' cargada en Qdrant.")
+
+        # Definir temas base para clasificación semántica
+        self.themes = [
+            {"label": "Ciencias Exactas", "keywords": "matemáticas, física, cálculo, álgebra, geometría, ecuaciones, estadística, probabilidad", "color": "0xFFE53935", "icon": "calculate_rounded"}, # Rojo
+            {"label": "Desarrollo", "keywords": "programación, software, desarrollo, web, móvil, código, arquitectura, algoritmos, aplicaciones", "color": "0xFF1E88E5", "icon": "smartphone_rounded"}, # Azul
+            {"label": "Datos e IA", "keywords": "datos, inteligencia artificial, minería, redes neuronales, machine learning, big data", "color": "0xFF8E24AA", "icon": "data_exploration_rounded"}, # Morado
+            {"label": "Diseño", "keywords": "diseño, arte, interfaces, UI, UX, usabilidad, gráfico", "color": "0xFFE91E63", "icon": "design_services_rounded"}, # Rosa
+            {"label": "Idiomas", "keywords": "inglés, español, literatura, gramática, francés, redacción, idiomas, lenguaje", "color": "0xFF00ACC1", "icon": "language_rounded"}, # Cian
+            {"label": "Humanidades", "keywords": "historia, geografía, filosofía, psicología, derecho, leyes, ética", "color": "0xFFFF8F00", "icon": "account_balance_rounded"}, # Naranja
+            {"label": "Gerencia", "keywords": "administración, gerencia, negocios, contabilidad, liderazgo, habilidades blandas, economía", "color": "0xFF43A047", "icon": "business_center_rounded"}, # Verde
+        ]
+        
+        # Pre-calcular embeddings de los temas para que sea rápido
+        self.theme_embeddings = list(self.encoder.embed([t["keywords"] for t in self.themes]))
 
         logger.info("Qdrant y FastEmbed inicializados correctamente.")
 
@@ -121,7 +136,40 @@ class VectorStoreService:
                     if "course_id" in record.payload:
                         courses.add(record.payload["course_id"])
                         
-            return list(courses)
+            # Transformar a objetos enriquecidos con IA
+            enriched_courses = []
+            for c in courses:
+                theme = self.infer_course_theme(c)
+                enriched_courses.append({
+                    "name": c,
+                    "color": theme["color"],
+                    "icon": theme["icon"]
+                })
+                
+            return enriched_courses
         except Exception as e:
             logger.error(f"Error getting available courses: {e}")
             return []
+
+    def infer_course_theme(self, course_name: str) -> dict:
+        """Asigna un tema basado en similitud coseno usando FastEmbed."""
+        try:
+            course_emb = list(self.encoder.embed([course_name]))[0]
+            
+            # Función auxiliar para similitud coseno
+            def cosine_similarity(v1, v2):
+                return np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+                
+            best_score = -1
+            best_theme = self.themes[0]
+            
+            for i, theme_emb in enumerate(self.theme_embeddings):
+                score = cosine_similarity(course_emb, theme_emb)
+                if score > best_score:
+                    best_score = score
+                    best_theme = self.themes[i]
+                    
+            return best_theme
+        except Exception as e:
+            logger.error(f"Error infering theme for {course_name}: {e}")
+            return self.themes[0]
