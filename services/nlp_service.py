@@ -2,6 +2,7 @@ import nltk
 import spacy
 from typing import List
 import os
+import json
 import requests
 
 try:
@@ -19,6 +20,18 @@ class NLPService:
         self.chunk_size = 500
         self.overlap = 50
         self.llm_service_url = os.environ.get("LLM_SERVICE_URL", "http://localhost:3003/api/v1/llm")
+        self.config_path = "./chroma_db/app_config.json"
+
+    def _get_llm_provider(self) -> str:
+        """Lee el proveedor LLM seleccionado por el administrador desde el config centralizado."""
+        try:
+            if os.path.exists(self.config_path):
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get("llm_provider", "groq")
+        except Exception:
+            pass
+        return "groq"
 
     def clean_text(self, text: str) -> str:
         """Limpia el texto base eliminando saltos de línea excesivos y basura."""
@@ -45,7 +58,7 @@ class NLPService:
                 json={
                     "query": query,
                     "context": context,
-                    "provider": "groq"
+                    "provider": self._get_llm_provider()
                 },
                 timeout=30
             )
