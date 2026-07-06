@@ -11,8 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install https://github.com/explosion/spacy-models/releases/download/es_core_news_sm-3.7.0/es_core_news_sm-3.7.0.tar.gz
 RUN python -c "import nltk; nltk.download('punkt')"
 
-# Pre-descargar SentenceTransformer para que no se descargue al iniciar el contenedor
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+# Pre-descargar modelo de FastEmbed para que no se descargue al iniciar el contenedor
+RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='paraphrase-multilingual-MiniLM-L12-v2')"
 
 COPY . .
 
