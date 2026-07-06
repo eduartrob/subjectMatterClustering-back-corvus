@@ -94,3 +94,34 @@ class VectorStoreService:
         logger.info(f"Búsqueda MLOps: Query '{query}' recuperó {len(retrieved_chunks)} chunks relevantes en {elapsed_time:.2f} segundos. Course_id={course_id}")
         
         return retrieved_chunks, retrieved_metadatas
+
+    def get_available_courses(self):
+        """Devuelve una lista de los course_ids únicos guardados en Qdrant."""
+        try:
+            records, next_page = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=1000,
+                with_payload=["course_id"],
+                with_vectors=False
+            )
+            courses = set()
+            for record in records:
+                if "course_id" in record.payload:
+                    courses.add(record.payload["course_id"])
+            
+            while next_page is not None:
+                records, next_page = self.client.scroll(
+                    collection_name=self.collection_name,
+                    limit=1000,
+                    offset=next_page,
+                    with_payload=["course_id"],
+                    with_vectors=False
+                )
+                for record in records:
+                    if "course_id" in record.payload:
+                        courses.add(record.payload["course_id"])
+                        
+            return list(courses)
+        except Exception as e:
+            logger.error(f"Error getting available courses: {e}")
+            return []

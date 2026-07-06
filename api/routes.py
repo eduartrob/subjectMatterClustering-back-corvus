@@ -6,10 +6,12 @@ from models.schemas import (
 from services.nlp_service import NLPService
 from services.vector_store import VectorStoreService
 from services.drive_service import DriveService
+from services.data_mining_service import DataMiningService
 
 router = APIRouter()
 nlp_service = NLPService()
 vector_store = VectorStoreService()
+data_mining = DataMiningService()
 
 @router.post("/ingest")
 async def ingest_material(request: IngestRequest):
@@ -48,6 +50,9 @@ async def search_materials(request: SearchRequest):
     y genera un resumen contextualizado por materia.
     """
     try:
+        # Loggear la búsqueda para minería de tendencias
+        data_mining.log_query(request.query)
+        
         chunks, metadatas = vector_store.search_similar(
             query=request.query,
             course_id=request.course_id
@@ -71,6 +76,9 @@ async def search_smart(request: SmartSearchRequest):
     a qué materia pertenece el material más relevante y generando el resumen.
     """
     try:
+        # Loggear la búsqueda para minería de tendencias
+        data_mining.log_query(request.query)
+        
         # 1. Detección de la materia más relevante
         _, metadatas_top = vector_store.search_similar(
             query=request.query,
@@ -101,5 +109,28 @@ async def search_smart(request: SmartSearchRequest):
             summary=summary,
             links=links
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/available-courses")
+async def get_available_courses():
+    """
+    Devuelve la lista de materias únicas que actualmente
+    tienen material ingestando en Qdrant.
+    """
+    try:
+        courses = vector_store.get_available_courses()
+        return {"courses": courses}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/search-trends")
+async def get_search_trends(limit: int = 4):
+    """
+    Devuelve las tendencias de búsqueda extraídas por minería de datos (TF).
+    """
+    try:
+        trends = data_mining.get_search_trends(limit=limit)
+        return {"trends": trends}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
