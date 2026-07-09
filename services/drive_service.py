@@ -1,38 +1,44 @@
 import io
 from typing import List
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseDownload
+import requests
 import PyPDF2
 
 class DriveService:
     def __init__(self, access_token: str):
-        creds = Credentials(token=access_token)
-        self.service = build('drive', 'v3', credentials=creds)
+        self.access_token = access_token
+        self.headers = {
+            'Authorization': f'Bearer {self.access_token}',
+            'Accept': 'application/json'
+        }
 
     def get_files_in_folder(self, folder_id: str) -> List[dict]:
-        """Obtiene la lista de archivos PDF dentro de una carpeta específica."""
+        """Obtiene la lista de archivos PDF dentro de una carpeta específica usando requests."""
         query = f"'{folder_id}' in parents and mimeType='application/pdf' and trashed=false"
+        url = "https://www.googleapis.com/drive/v3/files"
+        params = {
+            'q': query,
+            'pageSize': 10,
+            'fields': "nextPageToken, files(id, name, webViewLink)"
+        }
         
-        results = self.service.files().list(
-            q=query,
-            pageSize=10,
-            fields="nextPageToken, files(id, name, webViewLink)"
-        ).execute()
-        
-        return results.get('files', [])
+        response = requests.get(url, headers=self.headers, params=params)
+        if response.status_code != 200:
+            print(f"Error fetching files: {response.status_code} - {response.text}")
+            return []
+            
+        data = response.json()
+        return data.get('files', [])
 
     def download_and_extract_pdf(self, file_id: str) -> str:
-        """Descarga el PDF en memoria RAM y extrae su texto usando PyPDF2."""
-        request = self.service.files().get_media(fileId=file_id)
-        file_stream = io.BytesIO()
-        downloader = MediaIoBaseDownload(file_stream, request)
+        """Descarga el PDF en memoria RAM y extrae su texto usando PyPDF2 y requests."""
+        url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+        response = requests.get(url, headers=self.headers)
         
-        done = False
-        while done is False:
-            status, done = downloader.next_chunk()
-
-        file_stream.seek(0)
+        if response.status_code != 200:
+            print(f"Error downloading file {file_id}: {response.status_code} - {response.text}")
+            return ""
+            
+        file_stream = io.BytesIO(response.content)
         texto_extraido = ""
         
         try:
@@ -52,6 +58,7 @@ class DriveService:
         una lista de diccionarios listos para ser guardados en ChromaDB.
         """
         archivos = self.get_files_in_folder(folder_id)
+        print(f"Archivos encontrados: {len(archivos)}")
         resultados = []
         
         for archivo in archivos:
