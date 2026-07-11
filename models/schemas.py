@@ -1,8 +1,9 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 class IngestRequest(BaseModel):
     course_id: str
+    course_name: str
     teacher_id: str
     folder_id: str
     access_token: str
@@ -16,10 +17,9 @@ class SearchResponse(BaseModel):
     links: List[str]
 
 class SmartSearchRequest(BaseModel):
-    """Recibe solo la query; el backend detecta la materia automáticamente."""
     query: str
 
 class SmartSearchResponse(BaseModel):
-    detected_subject: str   # Nombre legible de la materia detectada
+    detected_subject: str
     summary: str
     links: List[str]
