@@ -87,7 +87,8 @@ class VectorStoreService:
             collection_name=self.collection_name,
             query=query_vector,
             query_filter=search_filter,
-            limit=n_results
+            limit=n_results,
+            score_threshold=0.35
         )
 
         latency = time.time() - start_time
